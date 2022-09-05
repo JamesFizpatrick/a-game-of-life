@@ -1,3 +1,4 @@
+using GameOfLife.Cells;
 using UnityEngine;
 
 
@@ -11,4 +12,3 @@ namespace GameOfLife.Data
         public Cell GridCell => gridCell;
     }
 }
-
