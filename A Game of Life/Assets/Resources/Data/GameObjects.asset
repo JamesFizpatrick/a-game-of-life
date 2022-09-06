@@ -13,3 +13,4 @@ MonoBehaviour:
   m_Name: GameObjects
   m_EditorClassIdentifier: 
   gridCell: {fileID: -7364207688354826051, guid: b7a4a738b4b184a9d8df8dc47893b1b2, type: 3}
+  gridRoot: {fileID: 4725266005121934511, guid: bccf0596252934a53bb1fd4cf2a26990, type: 3}

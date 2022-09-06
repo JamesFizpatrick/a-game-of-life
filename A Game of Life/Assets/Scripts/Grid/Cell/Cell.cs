@@ -16,7 +16,7 @@ namespace GameOfLife.Cells
         [SerializeField] private Color deadColor;
         [SerializeField] private Color aliveColor;
 
-        private CellState nextCellState = CellState.None;
+        private CellState _nextCellState = CellState.None;
         
         #endregion
 
@@ -45,7 +45,7 @@ namespace GameOfLife.Cells
 
         
         #region Public methods
-
+        
         public void ForceSetCellState(CellState state)
         {
             CurrentCellState = state;
@@ -55,25 +55,34 @@ namespace GameOfLife.Cells
 
         public void PrepareCellState(CellState state)
         {
-            nextCellState = state;
+            _nextCellState = state;
         }
 
 
         public void ApplyPreparedCellState()
         {
-            if (nextCellState == CellState.None)
+            if (_nextCellState == CellState.None)
             {
                 return;
             }
 
-            CurrentCellState = nextCellState;
+            CurrentCellState = _nextCellState;
             SetCellColor(CurrentCellState);
-            nextCellState = CellState.None;
+            _nextCellState = CellState.None;
         }
 
         
         public void SetButtonActivity(bool isActive) => button.interactable = isActive;
 
+
+        public void SetBorder(float borderSize)
+        {
+            Vector2 offset = new Vector2(borderSize, borderSize);
+            
+            image.rectTransform.offsetMin = offset;
+            image.rectTransform.offsetMax = -offset;
+        }
+        
         #endregion
 
         

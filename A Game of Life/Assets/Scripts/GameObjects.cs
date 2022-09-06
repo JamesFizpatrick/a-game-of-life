@@ -8,7 +8,9 @@ namespace GameOfLife.Data
     public class GameObjects : ScriptableObject
     {
         [SerializeField] private Cell gridCell;
+        [SerializeField] private GameObject gridRoot;
 
         public Cell GridCell => gridCell;
+        public GameObject GridRoot => gridRoot;
     }
 }

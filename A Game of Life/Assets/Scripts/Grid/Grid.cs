@@ -12,18 +12,14 @@ namespace GameOfLife.Grids
     public class Grid
     {
         #region Fields
-
-        private const string GridRootObjectName = "===GRID===";
-        private const int CellBorder = 10;
         
         private readonly Cell _cellPrefab;
-        private readonly Vector2 _cellDimensions;
         private readonly Random _random;
 
         private List<GridCellData> _cells = new List<GridCellData>();
-        private GameObject _gridRootObject;
 
-        private Vector2Int currentGridDimensions = Vector2Int.zero;
+        private GameObject _gridRootObject;
+        private GridData _currentGridData;
         
         #endregion
 
@@ -34,7 +30,6 @@ namespace GameOfLife.Grids
         public Grid()
         {
             _cellPrefab = DataContainer.GameObjects.GridCell;
-            _cellDimensions = _cellPrefab.RectTransform.sizeDelta;
             _random = new Random();
         }
 
@@ -55,30 +50,15 @@ namespace GameOfLife.Grids
                 ClearGrid();
             }
 
-            currentGridDimensions = new Vector2Int(dimension, dimension);
-            
-            for (int i = 0; i < dimension; i++)
-            {
-                for (int j = 0; j < dimension; j++)
-                {
-                    Cell cell = GameObject.Instantiate(_cellPrefab, _gridRootObject.transform);
-                    cell.RectTransform.localPosition = new Vector2(i * (_cellDimensions.x + CellBorder), j * (_cellDimensions.y + CellBorder));
-                    
-                    cell.ForceSetCellState(GetRandomCellState());
-                    cell.SetButtonActivity(false);
-
-                    GridCellData data = new GridCellData(new Vector2Int(i, j), cell);
-                    _cells.Add(data);
-                }
-            }
+            _currentGridData = CreateGrid(dimension, dimension);
+            _cells = CreateCells(_currentGridData);
         }
-
-
+        
+        
         public void CreateGridRootObject()
         {
-            _gridRootObject = new GameObject(GridRootObjectName);
+            _gridRootObject = GameObject.Instantiate(DataContainer.GameObjects.GridRoot, SceneDefs.MainCanvas.transform);
                 
-            _gridRootObject.transform.parent = SceneDefs.MainCanvas.transform;
             _gridRootObject.transform.localPosition = Vector3.zero;
             _gridRootObject.transform.localRotation = Quaternion.identity;
         }
@@ -92,7 +72,7 @@ namespace GameOfLife.Grids
             }
             
             _cells.Clear();
-            currentGridDimensions = Vector2Int.zero;
+            _currentGridData = new GridData(null, Vector2Int.zero, 0);
         }
 
 
@@ -101,11 +81,10 @@ namespace GameOfLife.Grids
             // Prepare next cell states
             foreach (GridCellData cell in _cells)
             {
-                TEST();
                 List<Cell> neighbours = GetNeighbouringCells(cell.Coordinates);
                 CellState newState = CellState.Dead;
                 
-                int aliveNeighboursCount = neighbours.Count(cell => cell.CurrentCellState == CellState.Alive);
+                int aliveNeighboursCount = neighbours.Count(x => x.CurrentCellState == CellState.Alive);
                 
                 if (cell.CellObject.CurrentCellState == CellState.Dead)
                 {
@@ -154,32 +133,19 @@ namespace GameOfLife.Grids
             return result;
         }
 
-
-        private void TEST()
-        {
-            List<Vector2Int> neighbourCoordinates = GetNeighbourCoordinates(new Vector2Int(0, 0));
-            
-            foreach (Vector2Int neighbour in neighbourCoordinates)
-            {
-                // Debug.LogError($"{neighbour.x} : {neighbour.y}");
-            }
-            
-            // Debug.LogError("////////");
-        }
         
-
         private List<Vector2Int> GetNeighbourCoordinates(Vector2Int coordinates)
         {
             List<Vector2Int> result = new List<Vector2Int>();
             
             int minX = 0;
             int minY = 0;
-            int maxX = currentGridDimensions.x - 1;
-            int maxY = currentGridDimensions.y - 1;
+            int maxX = _currentGridData.GridDimensions.x - 1;
+            int maxY = _currentGridData.GridDimensions.y - 1;
             
             for (int x = coordinates.x - 1; x <= coordinates.x + 1; x++)
             {
-                for (int y = coordinates.y - 1; y <= coordinates.x + 1; y++)
+                for (int y = coordinates.y - 1; y <= coordinates.y + 1; y++)
                 {
                     if (x == coordinates.x && y == coordinates.y)
                     {
@@ -195,7 +161,7 @@ namespace GameOfLife.Grids
                     }
                     else if (x < minX)
                     {
-                        xCoord = currentGridDimensions.x + x;
+                        xCoord = _currentGridData.GridDimensions.x + x;
                     }
                     
                     if (y > maxY)
@@ -204,7 +170,7 @@ namespace GameOfLife.Grids
                     }
                     else if (y < minY)
                     {
-                        yCoord = currentGridDimensions.y + y;
+                        yCoord = _currentGridData.GridDimensions.y + y;
                     }
                     
                     result.Add(new Vector2Int(xCoord, yCoord));
@@ -221,6 +187,68 @@ namespace GameOfLife.Grids
             return decision == 0 ? CellState.Alive : CellState.Dead;
         }
 
+
+        private GridData CreateGrid(int width, int height)
+        {
+            Vector2Int gridDimensions = new Vector2Int(width, height);
+
+            int cellDimension;
+            if (Screen.width < Screen.height)
+            {
+                cellDimension = Screen.width / width;
+            }
+            else
+            {
+                cellDimension = Screen.height / height;
+            }
+            
+            return new GridData(_gridRootObject, gridDimensions, cellDimension);
+        }
+
+
+        private List<GridCellData> CreateCells(GridData gridData)
+        {
+            List<GridCellData> result = new List<GridCellData>();
+
+            float borderedCellSize = gridData.CellDimension;
+            float halfCellSize = gridData.CellDimension / 2f;
+            float startXCoordinate = -gridData.GridDimensions.x / 2f * borderedCellSize + halfCellSize;
+            float startYCoordinate = -gridData.GridDimensions.y / 2f * borderedCellSize + halfCellSize;
+
+            Vector2 cellPosition = new Vector2(startXCoordinate, startYCoordinate);
+
+            for (int x = 0; x < gridData.GridDimensions.x; x++)
+            {
+                for (int y = 0; y < gridData.GridDimensions.y; y++)
+                {
+                    GridCellData cell = CreateCell(x, y, gridData.CellDimension, 2);
+                    cell.CellObject.RectTransform.localPosition = cellPosition;
+                    result.Add(cell);
+
+                    cellPosition.y += gridData.CellDimension;
+                }
+
+                cellPosition.y = startYCoordinate;
+                cellPosition.x += gridData.CellDimension;
+            }
+
+            return result;
+        }
+        
+            
+        private GridCellData CreateCell(int x, int y, int cellDimension, float border = 0f)
+        {
+            Cell cell = GameObject.Instantiate(_cellPrefab, _gridRootObject.transform);
+            cell.RectTransform.sizeDelta = new Vector2(cellDimension, cellDimension);
+            
+            cell.ForceSetCellState(GetRandomCellState());
+            cell.SetButtonActivity(true);
+            cell.SetBorder(border);
+
+            GridCellData data = new GridCellData(new Vector2Int(x, y), cell);
+            return data;
+        }
+        
         #endregion
     }
 }
